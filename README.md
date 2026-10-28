@@ -1,0 +1,59 @@
+# Ride Stats
+
+Every ride from a DJI Avinox e-bike (M1, M2, M2S) in one dashboard: miles per month, assist modes and what each costs, range on a full battery, battery health, gears, motor torque, temperature, records and a searchable ride list, with a page per ride (map, you vs the motor). English, miles or km. A Dark Matter Solutions app, built with Next.js and Tailwind, stored in Firestore, deployed on Firebase App Hosting. Installable on a phone.
+
+Try it without an account at `/demo` (made-up rides).
+
+## Where the data comes from
+
+The Avinox Ride app keeps a raw recording of every ride on Android at
+`Android/data/com.avinox.ride/files/ebike/data/…/cloud_ride_rec_*.proto`. Copy that folder to a computer (USB file transfer, or `adb pull`) and drop it on the Import page. Rides already imported are skipped, so the whole folder can be dropped again each time.
+
+The files are read **in the browser** (`src/lib/parseRide.ts`). Only each ride's summary and a thinned route (about 600 points) are sent to the server. The format isn't documented by DJI: it's a 251-byte header then `0x02EB` frames of protobuf samples, with field numbers from the community's reverse engineering (Avinox Ride Explorer; [lucad87/avinox-setup-app](https://github.com/lucad87/avinox-setup-app), MIT). Assist modes are stored as numbers (1 Eco, 2 Trail, 3 Turbo, 4 Auto, 20+ custom, as far as riders have worked out), and Settings lets a rider rename them. No per-cell battery voltages have been found in the files, so there's no cell balance chart; battery health is estimated instead.
+
+## What's worked out
+
+- **Battery used / Wh per mile**: the battery % drop times the pack size (Settings, 600 or 800 Wh), or the motor's output over the drive efficiency when a ride has no battery reading.
+- **Drive efficiency**: motor output over pack energy across rides that used 20%+ of the battery (falls back to 80%).
+- **Wh per mile by mode**: motor energy in each mode over the distance ridden in it.
+- **Range on a full battery**: usable Wh over each mode's Wh per km, plus a cold-weather figure.
+- **Battery health**: motor Wh per 1% of battery on rides using 20%+, a rolling median of 10 rides against the first 10.
+- **Cold costs range**: Wh per km by the lowest temperature on the ride, below 10 °C against above 15 °C.
+
+## Privacy
+
+Each rider's data lives under `riders/{uid}` (settings), `riders/{uid}/rides/{id}` (summaries) and `riders/{uid}/tracks/{id}` (routes), read and written only by the server for the signed-in rider. Firestore rules deny all browser access. Pages need sign-in except `/demo` and `/login`, and the site asks search engines not to index it.
+
+## Running locally
+
+```bash
+npm install
+npx firebase-tools emulators:start --only firestore,auth --project demo-ride   # in another terminal
+export NEXT_PUBLIC_FIREBASE_CONFIG='{"apiKey":"demo-key","authDomain":"demo-ride.firebaseapp.com","projectId":"demo-ride"}'
+export NEXT_PUBLIC_AUTH_EMULATOR=http://127.0.0.1:9099
+GCLOUD_PROJECT=demo-ride FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 npm run dev
+npm test
+```
+
+## Deploying (Firebase App Hosting)
+
+Use its own Firebase project (Blaze plan).
+
+1. Firestore: create the (default) database in production mode, then `npx firebase-tools deploy --only firestore:rules --project <project-id>`.
+2. Authentication → Sign-in method: turn on **Google** and **Email/Password**. Under Settings → Authorized domains, add the site's domain and its `*.hosted.app` address.
+3. App Hosting: create a backend from this repo, branch `main`, and link it to a Firebase web app so App Hosting passes `FIREBASE_WEBAPP_CONFIG` at build time (`next.config.ts` hands it to the browser).
+
+It needs no secrets.
+
+## Layout
+
+| Path | What |
+| --- | --- |
+| `src/lib/parseRide.ts` | Reads a `.proto` ride file into samples |
+| `src/lib/ride.ts` | One ride's summary (modes, gears, torque bands, energy, temperatures) and thinned track |
+| `src/lib/stats.ts` | Everything on the dashboard, from the summaries |
+| `src/lib/demo.ts` | Made-up rides for `/demo` and the tests |
+| `src/components/Dashboard.tsx`, `RideTable.tsx` | The dashboard |
+| `src/components/RideView.tsx`, `RideMap.tsx` | A ride's page (Leaflet map, CARTO dark tiles) |
+| `src/components/Importer.tsx` | Drop files or a folder; parses, skips known rides, saves three at a time |
+| `src/app/api/` | Session cookie, rides, settings |

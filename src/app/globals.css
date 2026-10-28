@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+/* The cockpit look: one dark theme, cyan for the data. */
+:root {
+  --ground: #0b0f14;
+  --card: #121821;
+  --sunk: #0b0f14;
+  --ink: #e6edf3;
+  --soft: #c5d0dc;
+  --muted: #9aa7b6;
+  --line: #1c2633;
+  --edge: #2b3a4e;
+  --accent: #38bdf8;
+  --accent-soft: #0f2a3a;
+  --on-accent: #0b0f14;
+  --good: #6ee7b7;
+  --good-soft: #0f2a1f;
+  --warn: #fcd34d;
+  --hot: #f87171;
+  --mode-eco: #34d399;
+  --mode-auto: #60a5fa;
+  --mode-trail: #fb923c;
+  --mode-turbo: #f87171;
+  --mode-boost: #f472b6;
+  --mode-off: #4b5563;
+  --mode-other: #a78bfa;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-grotesk), var(--font-inter), system-ui, sans-serif;
+  --color-ground: var(--ground);
+  --color-card: var(--card);
+  --color-sunk: var(--sunk);
+  --color-ink: var(--ink);
+  --color-soft: var(--soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-edge: var(--edge);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-good: var(--good);
+  --color-good-soft: var(--good-soft);
+  --color-warn: var(--warn);
+  --color-hot: var(--hot);
+}
+
+html,
+body {
+  background: var(--ground);
+  color: var(--ink);
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+  font-variant-numeric: tabular-nums;
+}
+
+@layer base {
+  input,
+  select,
+  textarea {
+    background: var(--sunk);
+    color: var(--ink);
+  }
+  a {
+    color: #7dd3fc;
+  }
+  a:hover {
+    color: #bae6fd;
+  }
+}
+
+.leaflet-container {
+  background: #0b0f14;
+  font: inherit;
+}
