@@ -1,0 +1,35 @@
+import { NextResponse } from "next/server";
+import { getViewer } from "@/lib/auth";
+import { ridesCol, tracksCol, db } from "@/lib/firebase-admin";
+import { cleanSummary, cleanTrack } from "@/lib/validate";
+
+/** The ids already saved, so the import can skip rides it has seen. */
+export async function GET() {
+  const viewer = await getViewer();
+  if (!viewer) return NextResponse.json({ error: "Sign in first" }, { status: 401 });
+  const refs = await ridesCol(viewer.uid).listDocuments();
+  return NextResponse.json({ ids: refs.map((r) => r.id) });
+}
+
+/** Saves one ride: its summary and its thinned track. Saving it again replaces it but keeps its name and notes. */
+export async function POST(req: Request) {
+  const viewer = await getViewer();
+  if (!viewer) return NextResponse.json({ error: "Sign in first" }, { status: 401 });
+  const body = (await req.json().catch(() => null)) as { summary?: unknown; track?: unknown } | null;
+  const summary = cleanSummary(body?.summary);
+  if (!summary) return NextResponse.json({ error: "That ride couldn't be read" }, { status: 400 });
+  const track = cleanTrack(body?.track);
+  const batch = db.batch();
+  batch.set(ridesCol(viewer.uid).doc(summary.id), summary, { merge: true });
+  batch.set(tracksCol(viewer.uid).doc(summary.id), { points: track });
+  await batch.commit();
+  return NextResponse.json({ ok: true, id: summary.id });
+}
+
+/** Deletes every ride. */
+export async function DELETE() {
+  const viewer = await getViewer();
+  if (!viewer) return NextResponse.json({ error: "Sign in first" }, { status: 401 });
+  await Promise.all([db.recursiveDelete(ridesCol(viewer.uid)), db.recursiveDelete(tracksCol(viewer.uid))]);
+  return NextResponse.json({ ok: true });
+}

@@ -1,0 +1,56 @@
+import type { Units } from "./settings.ts";
+
+export const KM_PER_MI = 1.609344;
+const FT_PER_M = 3.28084;
+
+const TZ = "Europe/London";
+
+export const distUnit = (u: Units) => (u === "mi" ? "mi" : "km");
+export const speedUnit = (u: Units) => (u === "mi" ? "mph" : "km/h");
+export const heightUnit = (u: Units) => (u === "mi" ? "ft" : "m");
+
+export const dist = (km: number, u: Units) => (u === "mi" ? km / KM_PER_MI : km);
+export const height = (m: number, u: Units) => (u === "mi" ? m * FT_PER_M : m);
+/** Energy per unit distance: Wh/km to Wh/mi. */
+export const perDist = (whPerKm: number, u: Units) => (u === "mi" ? whPerKm * KM_PER_MI : whPerKm);
+
+export function n(x: number, dp = 0) {
+  return x.toLocaleString("en-GB", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+}
+
+export const fmtDist = (km: number, u: Units, dp = 1) => `${n(dist(km, u), dp)} ${distUnit(u)}`;
+export const fmtHeight = (m: number, u: Units) => `${n(height(m, u))} ${heightUnit(u)}`;
+export const fmtSpeed = (kmh: number, u: Units, dp = 1) => `${n(dist(kmh, u), dp)} ${speedUnit(u)}`;
+
+export function fmtDuration(s: number) {
+  const h = Math.floor(s / 3600);
+  const m = Math.round((s % 3600) / 60);
+  if (h === 0) return `${m} min`;
+  return `${h}h ${String(m).padStart(2, "0")}`;
+}
+
+export function fmtHours(s: number) {
+  const h = s / 3600;
+  if (h < 1) return `${Math.round(s / 60)} min`;
+  return `${n(h, h < 10 ? 1 : 0)} h`;
+}
+
+export const fmtDate = (t: number) =>
+  new Date(t * 1000).toLocaleDateString("en-GB", { timeZone: TZ, day: "numeric", month: "short", year: "numeric" });
+export const fmtDay = (t: number) =>
+  new Date(t * 1000).toLocaleString("en-GB", { timeZone: TZ, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+export const fmtLongDate = (t: number) =>
+  new Date(t * 1000).toLocaleString("en-GB", { timeZone: TZ, weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+/** "2026-03" for the London month a ride started in. */
+export function monthKey(t: number) {
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, year: "numeric", month: "2-digit" }).formatToParts(new Date(t * 1000));
+  const y = parts.find((p) => p.type === "year")?.value;
+  const m = parts.find((p) => p.type === "month")?.value;
+  return `${y}-${m}`;
+}
+
+export function monthLabel(key: string) {
+  const [y, m] = key.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, 15)).toLocaleDateString("en-GB", { month: "short", year: "2-digit", timeZone: "UTC" });
+}
