@@ -1,4 +1,5 @@
 import posthog from "posthog-js";
+import { startFeedback } from "./lib/feedback";
 
 // Usage and error tracking (PostHog, EU). Every app sends to the same PostHog
 // project and tags its events with `app`, so they can be seen together or apart.
@@ -11,12 +12,16 @@ if (key && process.env.NODE_ENV === "production") {
     defaults: "2025-05-24",
     person_profiles: "always",
     capture_exceptions: true,
+    // Page load times (for "Slow pages") and taps that do nothing ("Frustrated tapping").
+    capture_performance: { web_vitals: true },
+    capture_dead_clicks: true,
   });
   posthog.register({
     app: APP,
     // Opened from the home screen (installed app) rather than a browser tab.
     installed: window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true,
   });
+  startFeedback(posthog, "Ride Stats");
 
   // Put a name to signed-in people. Firebase keeps the browser signed in
   // alongside the server session, so this also covers people already signed in.
