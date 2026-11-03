@@ -3,3 +3,9 @@ runConfig:
   maxInstances: 1
 # No secrets needed: each rider's rides live in Firestore in the same Firebase
 # project, under riders/{uid}, read and written by the server only.
+
+env:
+  # PostHog (usage + error tracking, EU). The project key is public by design:
+  # it can only send events. Needed at build time for the browser code.
+  - variable: NEXT_PUBLIC_POSTHOG_KEY
+    value: phc_ug5tqMV47bHgaPeERcb8sFcqeNd5ReCRPJtnjqm3TDTg
