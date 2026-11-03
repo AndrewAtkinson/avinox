@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
 import { ridesCol, tracksCol, db } from "@/lib/firebase-admin";
 import { cleanSummary, cleanTrack } from "@/lib/validate";
+import { track as count } from "@/lib/track";
 
 /** The ids already saved, so the import can skip rides it has seen. */
 export async function GET() {
@@ -13,6 +14,7 @@ export async function GET() {
 
 /** Saves one ride: its summary and its thinned track. Saving it again replaces it but keeps its name and notes. */
 export async function POST(req: Request) {
+  await count("ride_uploaded");
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Sign in first" }, { status: 401 });
   const body = (await req.json().catch(() => null)) as { summary?: unknown; track?: unknown } | null;
